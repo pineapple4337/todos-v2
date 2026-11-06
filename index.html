@@ -139,7 +139,6 @@
             <div class="flex justify-between items-center">
                 <h2 class="text-xs font-semibold text-slate-500 tracking-wider">monthly breakdown</h2>
                 <div class="flex gap-3">
-                    <!-- Mass edit button added here -->
                     <button onclick="window.openAdminTable()" class="text-xs font-semibold text-slate-500 hover:text-slate-800 transition-all cursor-pointer">mass edit ⚙</button>
                     <button id="open-ledger-btn" class="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-all cursor-pointer">expand ledger ↗</button>
                 </div>
@@ -270,6 +269,7 @@
         </div>
     </div>
 
+    <!-- MASS EDIT MODAL -->
     <div id="admin-table-modal" class="fixed inset-0 bg-slate-900/40 z-50 flex items-center justify-center p-4 hidden">
         <div class="glass-card w-full max-w-4xl bg-white p-6 rounded-xl max-h-[85vh] flex flex-col">
             <div class="flex justify-between items-center mb-4">
@@ -371,7 +371,6 @@
         function parseEntryDate(dateVal) {
             if (!dateVal) return { year: null, month: null, displayStr: '', isoDate: '' };
 
-            // Firestore Timestamp / timestamp-like object.
             if (typeof dateVal === 'object' && dateVal.seconds !== undefined) {
                 const date = new Date(Number(dateVal.seconds) * 1000);
                 if (!Number.isNaN(date.getTime())) {
@@ -615,6 +614,7 @@
                 const a = parseAmount(e.amount);
                 const cat = (e.category || '').toLowerCase();
                 
+                // Exclude 'fees' from monthly tally / daily avg calculation
                 if (cat !== 'fees') {
                     totalAll += a;
                 }
@@ -628,16 +628,14 @@
                 $('month-total-pill').textContent = `$${totalAll.toFixed(2)}`;
             }
 
-            // Calculate and display daily average spend for the active month
             if ($('daily-avg-pill')) {
                 const now = new Date();
                 let daysInPeriod;
                 
-                // If viewing the current month/year, use elapsed days so far; otherwise use total days in that month
                 if (selectedYear === now.getFullYear() && selectedMonth === now.getMonth() + 1) {
-                    daysInPeriod = now.getDate(); // Days elapsed so far this month
+                    daysInPeriod = now.getDate();
                 } else {
-                    daysInPeriod = new Date(selectedYear, selectedMonth, 0).getDate(); // Total days in past/future month
+                    daysInPeriod = new Date(selectedYear, selectedMonth, 0).getDate();
                 }
 
                 const dailyAvg = daysInPeriod > 0 ? totalAll / daysInPeriod : 0;
@@ -710,7 +708,11 @@
                 return matchesMonth && matchesCat;
             });
 
-            const totalAll = active.reduce((sum, e) => sum + parseAmount(e.amount), 0);
+            const totalAll = active.reduce((sum, e) => {
+                const cat = (e.category || '').toLowerCase();
+                return cat !== 'fees' ? sum + parseAmount(e.amount) : sum;
+            }, 0);
+
             if (expandedTotal) {
                 expandedTotal.textContent = `$${totalAll.toFixed(2)}`;
             }
@@ -787,52 +789,7 @@
             $('edit-expense-modal')?.classList.add('hidden');
         };
 
-        // Function to open and render the table
-        function openAdminTable() {
-            const tbody = document.getElementById('admin-table-body');
-            tbody.innerHTML = '';
-        
-            globalExpensesCache.forEach(exp => {
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50">
-                        <td class="p-3">${exp.date}</td>
-                        <td class="p-3 font-semibold text-slate-900">${exp.description}</td>
-                        <td class="p-3">-$${Number(exp.amount).toFixed(2)}</td>
-                        <td class="p-3">
-                            <select onchange="updateRecordCategory('${exp.id}', this.value)" class="px-2 py-1 text-xs font-semibold">
-                                <option value="fees" ${exp.category === 'fees' ? 'selected' : ''}>fees</option>
-                                <option value="utilities" ${exp.category === 'utilities' ? 'selected' : ''}>utilities</option>
-                                <option value="food & drink" ${exp.category === 'food & drink' ? 'selected' : ''}>food & drink</option>
-                                <option value="shopping" ${exp.category === 'shopping' ? 'selected' : ''}>shopping</option>
-                                <option value="subscriptions" ${exp.category === 'subscriptions' ? 'selected' : ''}>subscriptions</option>
-                                <option value="events" ${exp.category === 'events' ? 'selected' : ''}>events</option>
-                                <option value="health" ${exp.category === 'health' ? 'selected' : ''}>health</option>
-                                <option value="transport" ${exp.category === 'transport' ? 'selected' : ''}>transport</option>
-                            </select>
-                        </td>
-                    </tr>
-                `;
-            });
-        
-            document.getElementById('admin-table-modal').classList.remove('hidden');
-        }
-        
-        // Function to instantly update Firestore when a dropdown changes
-        async function updateRecordCategory(id, newCategory) {
-            try {
-                const docRef = doc(db, 'expenses', id);
-                await updateDoc(docRef, { category: newCategory });
-                
-                // Update local cache so UI reflects it immediately
-                const item = globalExpensesCache.find(e => e.id === id);
-                if (item) item.category = newCategory;
-                
-                renderExpenses(); // Re-render main dashboard totals
-            } catch (err) {
-                console.error("Failed to update category:", err);
-            }
-        }
-
+        // --- MASS EDIT ADMIN TABLE FUNCTIONS ---
         window.openAdminTable = function() {
             const tbody = document.getElementById('admin-table-body');
             if (!tbody) return;
@@ -870,16 +827,14 @@
                 const docRef = doc(db, 'expenses', id);
                 await updateDoc(docRef, { category: newCategory });
                 
-                // Update local cache so main UI reflects it instantly
                 const item = globalExpensesCache.find(e => e.id == id);
                 if (item) item.category = newCategory;
                 
-                renderExpenses(); // Re-render main dashboard totals
+                renderExpenses();
             } catch (err) {
                 console.error("Failed to update category:", err.message);
             }
         };
-        
     </script>
 </body>
 </html>
