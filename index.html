@@ -121,12 +121,13 @@
 
     <main class="max-w-2xl mx-auto px-6 pt-6 space-y-6">
 
-        <!-- MONTH NAVIGATION WITH TOTAL -->
+        <!-- MONTH NAVIGATION WITH TOTAL & DAILY AVERAGE -->
         <div class="flex justify-between items-center glass-card p-4">
             <button id="prev-month-btn" class="px-3 py-1 hover:bg-slate-100 rounded-lg text-slate-600 font-semibold transition-colors cursor-pointer">←</button>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2.5 flex-wrap">
                 <span id="current-month-display" class="text-lg font-bold text-slate-900">july 2026</span>
                 <span id="month-total-pill" class="text-sm font-semibold bg-blue-50 text-blue-700 px-3 py-1 rounded-full">$0.00</span>
+                <span id="daily-avg-pill" class="text-xs font-semibold bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full">$0.00 / day</span>
             </div>
             <button id="next-month-btn" class="px-3 py-1 hover:bg-slate-100 rounded-lg text-slate-600 font-semibold transition-colors cursor-pointer">→</button>
         </div>
@@ -375,8 +376,6 @@
 
         async function fetchExpensesFromFirestore() {
             try {
-                // Fetch without an orderBy query so the page does not depend on a
-                // Firestore index or on every document having the same date type.
                 const querySnapshot = await getDocs(expensesCol);
 
                 globalExpensesCache = querySnapshot.docs.map(docSnap => ({
@@ -400,24 +399,21 @@
             }
         }
 
-        
-function autoResizeJsonTextarea() {
-  const textarea = document.getElementById('json-text-input');
-  if (!textarea) return;
+        function autoResizeJsonTextarea() {
+            const textarea = document.getElementById('json-text-input');
+            if (!textarea) return;
 
-  textarea.style.height = 'auto';
-  const maxHeight = 500;
-  textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
-}
+            textarea.style.height = 'auto';
+            const maxHeight = 500;
+            textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
+        }
 
-function setupEventListeners() {
-
-  const jsonTextarea = document.getElementById('json-text-input');
-  if (jsonTextarea) {
-    jsonTextarea.addEventListener('input', autoResizeJsonTextarea);
-    autoResizeJsonTextarea();
-  }
-
+        function setupEventListeners() {
+            const jsonTextarea = document.getElementById('json-text-input');
+            if (jsonTextarea) {
+                jsonTextarea.addEventListener('input', autoResizeJsonTextarea);
+                autoResizeJsonTextarea();
+            }
 
             $('expense-form')?.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -592,6 +588,22 @@ function setupEventListeners() {
 
             if ($('month-total-pill')) {
                 $('month-total-pill').textContent = `$${totalAll.toFixed(2)}`;
+            }
+
+            // Calculate and display daily average spend for the active month
+            if ($('daily-avg-pill')) {
+                const now = new Date();
+                let daysInPeriod;
+                
+                // If viewing the current month/year, use elapsed days so far; otherwise use total days in that month
+                if (selectedYear === now.getFullYear() && selectedMonth === now.getMonth() + 1) {
+                    daysInPeriod = now.getDate(); // Days elapsed so far this month
+                } else {
+                    daysInPeriod = new Date(selectedYear, selectedMonth, 0).getDate(); // Total days in past/future month
+                }
+
+                const dailyAvg = daysInPeriod > 0 ? totalAll / daysInPeriod : 0;
+                $('daily-avg-pill').textContent = `$${dailyAvg.toFixed(2)} / day`;
             }
 
             let hasEntries = false;
