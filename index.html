@@ -54,6 +54,7 @@
         .cat-subscriptions { background-color: #f0f9ff !important; color: #075985 !important; }
         .cat-events { background-color: #f0fdf4 !important; color: #166534 !important; }
         .cat-fees { background-color: #fffbeb !important; color: #92400e !important; }
+        .cat-utilities { background-color: #f0fdfa !important; color: #115e59 !important; }
         .cat-health { background-color: #fdf2f8 !important; color: #9d174d !important; }
         .cat-transport { background-color: #ecfeff !important; color: #155e75 !important; }
         .cat-default { background-color: #f1f5f9 !important; color: #334155 !important; }
@@ -64,6 +65,7 @@
         .bar-subscriptions { background-color: #0284c7 !important; }
         .bar-events { background-color: #22c55e !important; }
         .bar-fees { background-color: #f59e0b !important; }
+        .bar-utilities { background-color: #14b8a6 !important; }
         .bar-health { background-color: #ec4899 !important; }
         .bar-transport { background-color: #06b6d4 !important; }
         .bar-default { background-color: #3b82f6 !important; }
@@ -159,6 +161,7 @@
                         <option value="subscriptions">subscriptions</option>
                         <option value="events">events</option>
                         <option value="fees">fees</option>
+                        <option value="utilities">utilities</option>
                         <option value="health">health</option>
                         <option value="transport">transport</option>
                     </select>
@@ -202,6 +205,7 @@
                         <option value="subscriptions">subscriptions</option>
                         <option value="events">events</option>
                         <option value="fees">fees</option>
+                        <option value="utilities">utilities</option>
                         <option value="health">health</option>
                         <option value="transport">transport</option>
                     </select>
@@ -248,6 +252,7 @@
                             <option value="subscriptions">subscriptions</option>
                             <option value="events">events</option>
                             <option value="fees">fees</option>
+                            <option value="utilities">utilities</option>
                             <option value="health">health</option>
                             <option value="transport">transport</option>
                         </select>
@@ -295,6 +300,7 @@
             'subscriptions': { barClass: 'bar-subscriptions', badgeClass: 'cat-subscriptions' },
             'events': { barClass: 'bar-events', badgeClass: 'cat-events' },
             'fees': { barClass: 'bar-fees', badgeClass: 'cat-fees' },
+            'utilities': { barClass: 'bar-utilities', badgeClass: 'cat-utilities' },
             'health': { barClass: 'bar-health', badgeClass: 'cat-health' },
             'transport': { barClass: 'bar-transport', badgeClass: 'cat-transport' }
         };
@@ -579,8 +585,12 @@
 
             active.forEach(e => {
                 const a = parseAmount(e.amount);
-                totalAll += a;
                 const cat = (e.category || '').toLowerCase();
+                
+                if (cat !== 'fees') {
+                    totalAll += a;
+                }
+            
                 if (totals[cat] !== undefined) {
                     totals[cat] += a;
                 }
